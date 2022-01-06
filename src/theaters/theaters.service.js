@@ -1,34 +1,35 @@
 const knex = require("../db/connection");
-const reduceProperties = require("../utils/reduce-properties");
+//const mapProperties = require("../utils/map-properties");
 
-
-const reduceMovies = reduceProperties("theater_id", {
-  movie_id: ["movies", null, "movie_id"],
-  title: ["movies", null, "title"],
-  runtime_in_minutes: ["movies", null, "runtime_in_minutes"],
-  rating: ["movies", null, "rating"],
-  description: ["movies", null, "description"],
-  image_url: ["movies", null, "image_url"],
-});
-
-
-function list() {
-    return knex("theaters")
-        .join("movies_theaters as mt", "mt.theater_id", "theaters.theater_id")
-        .join("movies", "movies.movie_id", "mt.movie_id")
-        .then(reduceMovies);
+async function list(movie_id) {
+  return knex("theaters")
+    .modify((queryBuilder) => {
+      if (movie_id) {
+        queryBuilder
+          .join(
+            "movies_theaters",
+            "movies_theaters.theater_id",
+            "theaters.theater_id"
+          )
+          .where({ "movies_theaters.movie_id": movie_id });
+      }
+    })
+    .then((theaters) => {
+      if (movie_id) {
+        return theaters;
+      }
+      return Promise.all(theaters.map(setMovies));
+    });
 }
 
-
-function listTheatersByMovieId(movieId) {
-  return knex("theaters")
-    .join("movie_theaters", "theaters.theater_id", "movie_theaters.theater_id")
-    .select("theaters.*", "is_showing", "movie_id")
-    .where({ movie_id: movieId });
+async function setMovies(theater) {
+  theater.movies = await knex("movies")
+    .join("movies_theaters", "movies_theaters.movie_id", "movies.movie_id")
+    .where({ "movies_theaters.theater_id": theater.theater_id });
+  return theater;
 }
 
 
 module.exports = {
-    list,
-    listTheatersByMovieId,
-}
+  list,
+};

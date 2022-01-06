@@ -1,48 +1,36 @@
-const service = require("./movies.service");
-const boundary = require("../errors/asyncErrorBoundary");
-
+const MoviesService = require("./movies.service");
+const asyncErrorBoundary = require("../errors/asyncErrorBoundary");
 
 async function movieExists(req, res, next) {
-  const { movieId } = req.params;
-  const movie = await service.read(movieId);
+  const movie = await MoviesService.read(req.params.movieId);
   if (movie) {
     res.locals.movie = movie;
     return next();
   }
-  return next({ status: 404, message: `Movie cannot be found.` });
+  next({
+    status: 404,
+    message: `Movie cannot be found.`,
+  });
 }
 
+function read(req, res, next) {
+  res.json({ data: res.locals.movie });
+}
 
 async function list(req, res, next) {
-    const isShowing = req.query.is_showing
-    if(isShowing) {
-        res.json({ data: await service.listActiveMovies() })
-    } else {
-        res.json({ data: await service.list() })
-    }
-}
+  const data = await MoviesService.list(req.query.is_showing);
+  res.json({ data });
 
-async function read(req, res, next) {
-    const movie = res.locals.movie;
-    res.json({data: movie});
+  // const { is_showing } = req.query;
+  // if (!is_showing) {
+  //   res.json({ data: await MoviesService.list() });
+  // } else if (is_showing === "true") {
+  //   res.json({ data: await MoviesService.list(is_showing) });
+  // }
 }
-
-async function listTheaters(req, res, next) {
-    const {movieId} = req.params;
-    const theaters = await service.listTheaters(movieId);
-    res.json({data: theaters});
-}
-
-async function listReviews(req, res, next) {
-    const {movieId} = req.params;
-    const reviews = await service.listReviews(movieId);
-    res.json({data: reviews});
-}
-
 
 module.exports = {
-    list: boundary(list),
-    read: [boundary(movieExists), read],
-    listTheaters: [boundary(movieExists), boundary(listTheaters)],
-    listReviews: [boundary(movieExists), boundary(listReviews)],
-}
+  list: asyncErrorBoundary(list),
+  read: [asyncErrorBoundary(movieExists), read],
+  movieExists,
+};
