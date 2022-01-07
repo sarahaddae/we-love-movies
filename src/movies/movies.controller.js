@@ -21,12 +21,7 @@ async function list(req, res, next) {
   const data = await MoviesService.list(req.query.is_showing);
   res.json({ data });
 
-  // const { is_showing } = req.query;
-  // if (!is_showing) {
-  //   res.json({ data: await MoviesService.list() });
-  // } else if (is_showing === "true") {
-  //   res.json({ data: await MoviesService.list(is_showing) });
-  // }
+  
 }
 
 module.exports = {
